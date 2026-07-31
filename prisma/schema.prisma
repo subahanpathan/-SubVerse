@@ -1,0 +1,86 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id                 String            @id @default(cuid())
+  name               String?
+  email              String            @unique
+  password           String?
+  image              String?
+  karma              Int               @default(0)
+  createdAt          DateTime          @default(now())
+  posts              Post[]
+  comments           Comment[]
+  votes              Vote[]
+  communities        CommunityMember[]
+  createdCommunities Community[]       @relation("CommunityCreator")
+}
+
+model Community {
+  id          String            @id @default(cuid())
+  name        String            @unique
+  description String?
+  creatorId   String?
+  createdAt   DateTime          @default(now())
+  creator     User?             @relation("CommunityCreator", fields: [creatorId], references: [id])
+  posts       Post[]
+  members     CommunityMember[]
+}
+
+model CommunityMember {
+  id          String    @id @default(cuid())
+  userId      String
+  communityId String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  community   Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  joinedAt    DateTime  @default(now())
+
+  @@unique([userId, communityId])
+}
+
+model Post {
+  id          String    @id @default(cuid())
+  title       String
+  content     String?
+  imageUrl    String?
+  linkUrl     String?
+  authorId    String
+  communityId String
+  createdAt   DateTime  @default(now())
+  author      User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  community   Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  comments    Comment[]
+  votes       Vote[]
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  content   String
+  postId    String
+  authorId  String
+  parentId  String? // reserved for future nested replies
+  createdAt DateTime @default(now())
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  votes     Vote[]
+}
+
+model Vote {
+  id        String   @id @default(cuid())
+  value     Int // 1 = upvote, -1 = downvote
+  userId    String
+  postId    String?
+  commentId String?
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post      Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  comment   Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@unique([userId, commentId])
+}
