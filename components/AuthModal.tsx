@@ -33,7 +33,15 @@ export function AuthModal({ isOpen, initialMode, onClose }: AuthModalProps) {
           body: JSON.stringify({ name, email, password }),
         });
 
-        const data = await res.json();
+        const contentType = res.headers.get("content-type");
+        let data: any = {};
+        if (contentType && contentType.includes("application/json")) {
+          data = await res.json();
+        } else {
+          const text = await res.text();
+          throw new Error(text || `Server returned error (${res.status})`);
+        }
+
         if (!res.ok) {
           throw new Error(data.message || "Failed to register account");
         }
